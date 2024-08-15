@@ -1,0 +1,901 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wealth By Brainslap</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Wealth by Brainslap" />
+  <link rel="icon" href="favicon.png">
+  <meta property="og:title" content="" />
+  <meta property="og:description" content="Wealth by Brainslap" />
+  <meta property="og:image" content="" />
+  <meta name="twitter:card" content="" />
+  <meta name="twitter:site" content="" />
+  <meta name="twitter:title" content="" />
+  <meta name="twitter:description" content="" />
+  <meta name="twitter:image" content="" />
+  <link rel="manifest" href="manifest.webmanifest">
+
+
+<link href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/sortable.min.css" rel="stylesheet" />
+
+
+</head>
+
+<body>
+<h1>Wealth</h1> by Brainslap!
+<hr>
+
+
+<input type="date" id="from_date" name="from_date">
+<input type="date" id="to_date" name="to_date">
+<br>
+<br>
+<input type="submit" onclick="all_stocks(stocks);">
+<br>
+<br>
+
+<!-- <input type="button" text="Sort Table" onclick="table_sort();"> -->
+
+
+<!-- <div id="result">
+</div> -->
+  
+<div id="counter"></div>
+
+<table class='sortable'>
+  <thead>
+    <tr>
+      <th>Stock</th>
+      <th>Pattern</th>
+      <th>Overall Return</th>
+      <th>Best time to invest was x weeks ago</th>
+      <th>Max return from best time</th>
+      <th>Worst time to invest was x weeks ago</th>
+      <th>Min return from worst time</th>
+      <th>Buy Metric</th>
+    </tr>
+  </thead>
+  <tbody id='result'>
+
+  </tbody>
+</table>
+
+
+
+
+
+<script>
+
+function min_max_return(arr) {
+  var price = arr;
+  var base = price[price.length - 1];
+  var returns = [];
+  for (i = 0; i < price.length; i++) {
+    var r = (base - price[i])*100 / price[i];
+    returns.push(r);
+  }
+  returns.pop();
+
+  returns = returns.reverse();
+
+  const max_val = Math.max(...returns);
+  const min_val = Math.min(...returns);
+  const max_index = returns.indexOf(max_val)+1;
+  const min_index = returns.indexOf(min_val)+1;
+
+  /* console.log(returns,max_val,min_val,max_index,min_index); */
+
+  return [max_index, max_val, min_index, min_val];
+}
+
+
+
+  
+var url = "https://query1.finance.yahoo.com/v8/finance/chart/IRCTC.NS?period1=1660726173&period2=1692262173&interval=1wk&events=history&includeAdjustedClose=true";
+var add = "https://proxy.cors.sh/";
+add = "https://corsproxy.io/?";
+var final = add + url;
+/* const response = fetch(final); */
+/* console.log(response.json); */
+async function logMovies(stock) {
+  /*  var stock_name = document.getElementById("stock_name").value; */
+
+  var stock_name = stock;
+
+  var from_date = new Date(document.getElementById("from_date").value).getTime() / 1000;
+  var to_date = new Date(document.getElementById("to_date").value).getTime() / 1000;
+  var cors_proxy = "https://corsproxy.io/?";
+  var api_url = "https://query1.finance.yahoo.com/v8/finance/chart/$stock_name$?period1=$from_date$&period2=$to_date$&interval=1wk&events=history&includeAdjustedClose=true";
+  api_url = api_url.replace("$stock_name$", stock_name);
+  api_url = api_url.replace("$from_date$", from_date);
+  api_url = api_url.replace("$to_date$", to_date);
+  var final_url = cors_proxy + api_url;
+  /*  console.log(final_url); */
+  const response = await fetch(final_url);
+  const stock_price = await response.json();
+  /*  console.log(stock_price); */
+  /*   document.getElementById("result").innerText = JSON.stringify(stock_price); */
+
+  var stock_open = stock_price.chart.result[0].indicators.quote[0].open;
+  var stock_close = stock_price.chart.result[0].indicators.quote[0].close;
+
+  var return_pattern = min_max_return(stock_close);
+  
+  /*  console.log(stock_open);
+   console.log(stock_close);
+    */
+  var open1 = stock_open[0];
+  var close1 = stock_close[stock_close.length - 2];
+
+  var open2 = close1;
+  var close2 = stock_close[stock_close.length - 1];
+
+  // var magnitude = ((close1 - open1) / open1) * ((close2 - open2) / open2);
+
+  var magnitude = return_pattern[1]*return_pattern[2]*return_pattern[3]/return_pattern[0] ;
+
+  var normal_return = (close2 - open1)*100/open1;
+
+  var pattern = 'Other';
+
+  if ((close1 - open1) < 0 && (close2 - open2) > 0) {
+    pattern = 'Low then High';
+  }
+
+  /* console.log(open1, close1, open2, close2, magnitude); */
+
+ 
+  document.getElementById("result").innerHTML += '<tr><td><a target=\'_blank\' href=\'https://google.com/search?q='+ stock_name.replace('.NS','') +'+stock+price\' >' + stock_name + '</a></td><td>' + pattern + '</td><td>' + normal_return + '</td><td>'+return_pattern[0]+'</td><td>'+return_pattern[1]+'</td><td>'+return_pattern[2]+'</td><td>'+return_pattern[3]+'</td><td>' + magnitude + '</td></tr>';
+  
+  
+  /*   console.log(from_date);
+    console.log(to_date); */
+}
+
+function all_stocks(arr) {
+  var s = arr;
+  var stock_count = s.length;
+
+  document.getElementById("result").innerHTML = "";
+
+  
+  for (i = 0; i < s.length; i++) {
+    logMovies(s[i]);
+    document.getElementById("counter").innerText = i+1 +" out of " + stock_count + " is done";
+  }
+
+
+}
+
+
+
+
+var stocks = ['360ONE.NS',
+'3MINDIA.NS',
+'AARTIDRUGS.NS',
+'AARTIIND.NS',
+'AAVAS.NS',
+'ABB.NS',
+'ABBOTINDIA.NS',
+'ABCAPITAL.NS',
+'ABFRL.NS',
+'ABSLAMC.NS',
+'ACC.NS',
+'ACE.NS',
+'ADANIENT.NS',
+'ADANIGREEN.NS',
+'ADANIPORTS.NS',
+'ADANIPOWER.NS',
+'ADANITRANS.NS',
+'AEGISLOG.NS',
+'AETHER.NS',
+'AFFLE.NS',
+'AGI.NS',
+'AIAENG.NS',
+'AIIL.NS',
+'AJANTPHARM.NS',
+'AKZOINDIA.NS',
+'ALKEM.NS',
+'ALKYLAMINE.NS',
+'ALLCARGO.NS',
+'ALOKTEXT.NS',
+'AMARAJABAT.NS',
+'AMBER.NS',
+'AMBUJACEM.NS',
+'AMIORG.NS',
+'ANANTRAJ.NS',
+'ANGELONE.NS',
+'ANURAS.NS',
+'APARINDS.NS',
+'APCOTEXIND.NS',
+'APLAPOLLO.NS',
+'APLLTD.NS',
+'APOLLOHOSP.NS',
+'APOLLOTYRE.NS',
+'APTUS.NS',
+'ARVIND.NS',
+'ARVINDFASN.NS',
+'ASAHIINDIA.NS',
+'ASHOKA.NS',
+'ASHOKLEY.NS',
+'ASIANPAINT.NS',
+'ASTEC.NS',
+'ASTERDM.NS',
+'ASTRAL.NS',
+'ASTRAMICRO.NS',
+'ASTRAZEN.NS',
+'ATGL.NS',
+'ATUL.NS',
+'AUBANK.NS',
+'AUROPHARMA.NS',
+'AVANTI.NS',
+'AWL.NS',
+'AXISBANK.NS',
+'BAJAJ-AUTO.NS',
+'BAJAJCON.NS',
+'BAJAJELEC.NS',
+'BAJAJFINSV.NS',
+'BAJAJHIND.NS',
+'BAJAJHLDNG.NS',
+'BAJFINANCE.NS',
+'BALAMINES.NS',
+'BALKRISIND.NS',
+'BALRAMCHIN.NS',
+'BANDHANBNK.NS',
+'BANKBARODA.NS',
+'BANKINDIA.NS',
+'BARBEQUE.NS',
+'BASF.NS',
+'BATAINDIA.NS',
+'BAYERCROP.NS',
+'BBL.NS',
+'BBTC.NS',
+'BDL.NS',
+'BECTORFOOD.NS',
+'BEL.NS',
+'BEML.NS',
+'BENGALASM.NS',
+'BERGEPAINT.NS',
+'BHARATFORG.NS',
+'BHARTIARTL.NS',
+'BHEL.NS',
+'BIOCON.NS',
+'BIRLACORPN.NS',
+'BLS.NS',
+'BLUEDART.NS',
+'BLUESTARCO.NS',
+'BOMDYEING.NS',
+'BOROLTD.NS',
+'BORORENEW.NS',
+'BOSCHLTD.NS',
+'BPCL.NS',
+'BRIGADE.NS',
+'BRITANNIA.NS',
+'BSLSENETFG.NS',
+'BSOFT.NS',
+'CAMLINFINE.NS',
+'CAMPUS.NS',
+'CAMS.NS',
+'CANBK.NS',
+'CANFINHOME.NS',
+'CAPPL.NS',
+'CARBORUNIV.NS',
+'CARERATING.NS',
+'CARTRADE.NS',
+'CARYSIL.NS',
+'CASTROLIND.NS',
+'CCL.NS',
+'CEATLTD.NS',
+'CENTRALBK.NS',
+'CENTURYPLY.NS',
+'CENTURYTEX.NS',
+'CERA.NS',
+'CESC.NS',
+'CGCL.NS',
+'CGPOWER.NS',
+'CHALET.NS',
+'CHAMBLFERT.NS',
+'CHEMPLASTS.NS',
+'CHENNPETRO.NS',
+'CHOICEIN.NS',
+'CHOLAFIN.NS',
+'CHOLAHLDNG.NS',
+'CIEINDIA.NS',
+'CIGNITI.NS',
+'CIPLA.NS',
+'CLEAN.NS',
+'CMSINFO.NS',
+'COALINDIA.NS',
+'COCHINSHIP.NS',
+'COFFEEDAY.NS',
+'COFORGE.NS',
+'COLPAL.NS',
+'CONCOR.NS',
+'CONFIPET.NS',
+'COROMANDEL.NS',
+'COSMOFIRST.NS',
+'CPSEETF.NS',
+'CRAFTSMAN.NS',
+'CREDITACC.NS',
+'CRESSAN.NS',
+'CRISIL.NS',
+'CROMPTON.NS',
+'CSBBANK.NS',
+'CUB.NS',
+'CUMMINSIND.NS',
+'CYIENT.NS',
+'DAAWAT.NS',
+'DABUR.NS',
+'DALBHARAT.NS',
+'DATAPATTNS.NS',
+'DBL.NS',
+'DBREALTY.NS',
+'DCBBANK.NS',
+'DCMSHRIRAM.NS',
+'DCW.NS',
+'DEEPAKFERT.NS',
+'DEEPAKNI.NS',
+'DELHIVERY.NS',
+'DELTACORP.NS',
+'DEVYANI.NS',
+'DHAMPURSUG.NS',
+'DISHTV.NS',
+'DIVISLAB.NS',
+'DIXON.NS',
+'DLF.NS',
+'DMART.NS',
+'DRREDDY.NS',
+'DWARKESH.NS',
+'EASEMYTRIP.NS',
+'ECLERX.NS',
+'EDELWEISS.NS',
+'EICHERMOT.NS',
+'EIDPARRY.NS',
+'EIHOTEL.NS',
+'EKI.NS',
+'ELECON.NS',
+'ELECTCAST.NS',
+'ELGIEQUIP.NS',
+'EMAMILTD.NS',
+'ENDURANCE.NS',
+'ENGINERSIN.NS',
+'EPL.NS',
+'EQUITASBNK.NS',
+'ERIS.NS',
+'ESABINDIA.NS',
+'ESCORTS.NS',
+'EUREKAFORBE.NS',
+'EVEREADY.NS',
+'EXIDEIND.NS',
+'FAIRCHEMOR.NS',
+'FCL.NS',
+'FDC.NS',
+'FEDERALBNK.NS',
+'FIEMIND.NS',
+'FINCABLES.NS',
+'FINEORG.NS',
+'FINOLEXIND.NS',
+'FLUOROCHEM.NS',
+'FORTIS.NS',
+'FSL.NS',
+'GABRIEL.NS',
+'GAEL.NS',
+'GAIL.NS',
+'GALAXYSURF.NS',
+'GARFIBRES.NS',
+'GATEWAY.NS',
+'GATI.NS',
+'GESHIP.NS',
+'GHCL.NS',
+'GICRE.NS',
+'GILLETTE.NS',
+'GLAND.NS',
+'GLAXO.NS',
+'GLENMARK.NS',
+'GLOBUSSPR.NS',
+'GMDCLTD.NS',
+'GMM.NS',
+'GMRINFRA.NS',
+'GNFC.NS',
+'GOCOLORS.NS',
+'GODFRYPHLP.NS',
+'GODREJAGRO.NS',
+'GODREJCP.NS',
+'GODREJIND.NS',
+'GODREJPROP.NS',
+'GOKEX.NS',
+'GPIL.NS',
+'GPPL.NS',
+'GRANULES.NS',
+'GRAPHITE.NS',
+'GRASIM.NS',
+'GRAVITA.NS',
+'GREAVESCOT.NS',
+'GREENPANEL.NS',
+'GRINDWELL.NS',
+'GRINFRA.NS',
+'GRNLAMIND.NS',
+'GRSE.NS',
+'GSFC.NS',
+'GSPL.NS',
+'GTLINFRA.NS',
+'GUJALKALI.NS',
+'GUJGAS.NS',
+'HAL.NS',
+'HAPPSTMNDS.NS',
+'HARSHA.NS',
+'HATSUN.NS',
+'HAVELLS.NS',
+'HAWKINCOOK.NS',
+'HBLPOWER.NS',
+'HCC.NS',
+'HCLTECH.NS',
+'HDFCAMC.NS',
+'HDFCBANK.NS',
+'HDFCLIFE.NS',
+'HDFCSENSEX.NS',
+'HEG.NS',
+'HEIDELBERG.NS',
+'HEMIPROP.NS',
+'HEROMOTOCO.NS',
+'HFCL.NS',
+'HGINFRA.NS',
+'HGS.NS',
+'HIKAL.NS',
+'HIL.NS',
+'HINDALCO.NS',
+'HINDCOPPER.NS',
+'HINDOILEXP.NS',
+'HINDPETRO.NS',
+'HINDUNILVR.NS',
+'HINDWAREAP.NS',
+'HINDZINC.NS',
+'HLEGLAS.NS',
+'HNDFDS.NS',
+'HOMEFIRST.NS',
+'HONAUT.NS',
+'HSCL.NS',
+'HUDCO.NS',
+'IBREALEST.NS',
+'IBULHSGFIN.NS',
+'ICICI500.NS',
+'ICICIB22.NS',
+'ICICIBANK.NS',
+'ICICIGI.NS',
+'ICICIPRULI.NS',
+'ICICISENSX.NS',
+'ICIL.NS',
+'ICRA.NS',
+'IDBI.NS',
+'IDEA.NS',
+'IDFC.NS',
+'IDFCFIRSTB.NS',
+'IDFSENSEXE.NS',
+'IEX.NS',
+'IFBIND.NS',
+'IFCI.NS',
+'IGL.NS',
+'IIFL.NS',
+'INDHOTEL.NS',
+'INDIACEM.NS',
+'INDIAGLYCO.NS',
+'INDIAMART.NS',
+'INDIANB.NS',
+'INDIGO.NS',
+'INDIGOPNTS.NS',
+'INDOCO.NS',
+'INDUSINDBK.NS',
+'INDUSTOWER.NS',
+'INFIBEAM.NS',
+'INFY.NS',
+'INGERRAND.NS',
+'INOXWIND.NS',
+'INTELLECT.NS',
+'IOB.NS',
+'IOC.NS',
+'IOLCP.NS',
+'IONEXCHANG.NS',
+'IPCALAB.NS',
+'IRB.NS',
+'IRCON.NS',
+'IRCTC.NS',
+'IRFC.NS',
+'ISEC.NS',
+'ISGEC.NS',
+'ITC.NS',
+'ITDCEM.NS',
+'ITI.NS',
+'J&KBANK.NS',
+'JAICORPLTD.NS',
+'JAMNAAUTO.NS',
+'JBCHEPHARM.NS',
+'JBMA.NS',
+'JCHAC.NS',
+'JINDALPOLY.NS',
+'JINDALSAW.NS',
+'JINDALSTEL.NS',
+'JISLJALEQS.NS',
+'JKCEMENT.NS',
+'JKIL.NS',
+'JKLAKSHMI.NS',
+'JKPAPER.NS',
+'JKTYRE.NS',
+'JMFINANCIL.NS',
+'JPASSOCIAT.NS',
+'JPPOWER.NS',
+'JSL.NS',
+'JSWENERGY.NS',
+'JSWSTEEL.NS',
+'JUBLFOOD.NS',
+'JUBLINGREA.NS',
+'JUBLPHARMA.NS',
+'JUSTDIAL.NS',
+'JYOTHYLAB.NS',
+'JYOTIRES.NS',
+'KAJARIACER.NS',
+'KALYANKJIL.NS',
+'KAMAHOLD.NS',
+'KANSAINER.NS',
+'KEC.NS',
+'KEI.NS',
+'KENNAMET.NS',
+'KIMS.NS',
+'KIOCL.NS',
+'KIRIINDUS.NS',
+'KIRLFER.NS',
+'KIRLOSENG.NS',
+'KIRLPNU.NS',
+'KNRCON.NS',
+'KOTAKBANK.NS',
+'KPIGREEN.NS',
+'KPIL.NS',
+'KPITTECH.NS',
+'KPRMILL.NS',
+'KRBL.NS',
+'KSB.NS',
+'KSCL.NS',
+'KTKBANK.NS',
+'KTKSENSEX.NS',
+'L&TFH.NS',
+'LALPATHLAB.NS',
+'LAOPALA.NS',
+'LATENTVIEW.NS',
+'LAURUSLABS.NS',
+'LAXMIMACH.NS',
+'LEMONTREE.NS',
+'LGBBROSLTD.NS',
+'LICHSGFIN.NS',
+'LICI.NS',
+'LICNETFSEN.NS',
+'LINDEINDIA.NS',
+'LLOYDSME.NS',
+'LODHA.NS',
+'LT.NS',
+'LTIM.NS',
+'LTTS.NS',
+'LUPIN.NS',
+'LXCHEM.NS',
+'M&M.NS',
+'M&MFIN.NS',
+'MAHABANK.NS',
+'MAHLIFE.NS',
+'MAHLOG.NS',
+'MAHSCOOTER.NS',
+'MAHSEAMLES.NS',
+'MANAPPURAM.NS',
+'MANYAVAR.NS',
+'MAPMYINDIA.NS',
+'MARICO.NS',
+'MARKSANS.NS',
+'MARUTI.NS',
+'MASFIN.NS',
+'MASTEK.NS',
+'MAXHEALTH.NS',
+'MAZDOCK.NS',
+'MCX.NS',
+'MEDPLUS.NS',
+'METROBRAND.NS',
+'METROPOLIS.NS',
+'MFL.NS',
+'MFSL.NS',
+'MGL.NS',
+'MHRIL.NS',
+'MIDHANI.NS',
+'MINDACORP.NS',
+'MIRZAINT.NS',
+'MMTC.NS',
+'MOIL.NS',
+'MOL.NS',
+'MOLDTKPAC.NS',
+'MOREPENLAB.NS',
+'MOTHERSON.NS',
+'MOTILALOFS.NS',
+'MPHASIS.NS',
+'MRF.NS',
+'MRPL.NS',
+'MSTC.NS',
+'MSUMI.NS',
+'MTARTECH.NS',
+'MTNL.NS',
+'MUTHOOTFIN.NS',
+'NAM-INDIA.NS',
+'NATCOPHARM.NS',
+'NATIONALUM.NS',
+'NAUKRI.NS',
+'NAVA.NS',
+'NAVINFLUOR.NS',
+'NAVNETEDUL.NS',
+'NAZARA.NS',
+'NBCC.NS',
+'NCC.NS',
+'NDTV.NS',
+'NELCO.NS',
+'NEOGEN.NS',
+'NESCO.NS',
+'NESTLEIND.NS',
+'NETWORK18.NS',
+'NEULANDLAB.NS',
+'NEWGEN.NS',
+'NFL.NS',
+'NH.NS',
+'NHPC.NS',
+'NIACL.NS',
+'NIITLTD.NS',
+'NLCINDIA.NS',
+'NMDC.NS',
+'NOCIL.NS',
+'NTPC.NS',
+'NUVOCO.NS',
+'NYKAA.NS',
+'OBEROIRLTY.NS',
+'OFSS.NS',
+'OIL.NS',
+'OLECTRA.NS',
+'ONGC.NS',
+'ORIENTCEM.NS',
+'ORIENTELEC.NS',
+'PAGEIND.NS',
+'PAISALO.NS',
+'PARADEEP.NS',
+'PARAS.NS',
+'PAUSHAKLTD.NS',
+'PAYTM.NS',
+'PCBL.NS',
+'PEL.NS',
+'PERSISTENT.NS',
+'PETRONET.NS',
+'PFC.NS',
+'PFIZER.NS',
+'PGHH.NS',
+'PGHL.NS',
+'PHOENIXLTD.NS',
+'PIDILITIND.NS',
+'PIIND.NS',
+'PNB.NS',
+'PNBHOUSING.NS',
+'PNCINFRA.NS',
+'POLICYBZR.NS',
+'POLYCAB.NS',
+'POLYMED.NS',
+'POLYPLEX.NS',
+'POONAWALLA.NS',
+'POWERGRID.NS',
+'POWERINDIA.NS',
+'POWERMECH.NS',
+'PRAJIND.NS',
+'PRESTIGE.NS',
+'PRICOLLTD.NS',
+'PRIMO.NS',
+'PRINCEPIPE.NS',
+'PRIVISCL.NS',
+'PRSMJOHNSN.NS',
+'PSPPROJECT.NS',
+'PTC.NS',
+'PTCIL.NS',
+'PVRINOX.NS',
+'QUESS.NS',
+'RADICO.NS',
+'RAILTEL.NS',
+'RAIN.NS',
+'RAINBOW.NS',
+'RAJESHEXPO.NS',
+'RAJGLOWIR.NS',
+'RALLIS.NS',
+'RAMCOCEM.NS',
+'RATEGAIN.NS',
+'RATNAMANI.NS',
+'RAYMOND.NS',
+'RBA.NS',
+'RBLBANK.NS',
+'RCF.NS',
+'RECLTD.NS',
+'REDINGTON.NS',
+'RELAXO.NS',
+'RELIANCE.NS',
+'RELIGARE.NS',
+'RENUKA.NS',
+'REPCOHOME.NS',
+'RHIM.NS',
+'RIIL.NS',
+'RITES.NS',
+'RKFORGE.NS',
+'ROLEXRINGS.NS',
+'ROSSARI.NS',
+'ROUTE.NS',
+'RPOWER.NS',
+'RTNINDIA.NS',
+'RTNPOWER.NS',
+'RVNL.NS',
+'SAFARIND.NS',
+'SAIL.NS',
+'SANDUMA.NS',
+'SANOFI.NS',
+'SANSERA.NS',
+'SAPPHIRE.NS',
+'SAREGAMA.NS',
+'SBICARD.NS',
+'SBILIFE.NS',
+'SBIN.NS',
+'SBISENSEX.NS',
+'SCHAEFFLER.NS',
+'SCHNEIDER.NS',
+'SCI.NS',
+'SENSEXBEES.NS',
+'SEQUENT.NS',
+'SETFBSE100.NS',
+'SETFSN50.NS',
+'SFL.NS',
+'SHARDACROP.NS',
+'SHAREINDIA.NS',
+'SHBCLQ.NS',
+'SHILPAMED.NS',
+'SHOPERSTOP.NS',
+'SHREECEM.NS',
+'SHRIRAMFIN.NS',
+'SHYAMMETL.NS',
+'SIEMENS.NS',
+'SIS.NS',
+'SJVN.NS',
+'SKFINDIA.NS',
+'SNXT50BEES.NS',
+'SOBHA.NS',
+'SOLARINDS.NS',
+'SONACOMS.NS',
+'SONATSOFTW.NS',
+'SOUTHBANK.NS',
+'SPARC.NS',
+'SPLPETRO.NS',
+'SRF.NS',
+'STAR.NS',
+'STARCEMENT.NS',
+'STARHEALTH.NS',
+'STLTECH.NS',
+'STOVEKRAFT.NS',
+'STYLAMIND.NS',
+'SUBEX.NS',
+'SUDARSCHEM.NS',
+'SUMICHEM.NS',
+'SUNDRMFAST.NS',
+'SUNPHARMA.NS',
+'SUNTECK.NS',
+'SUNTV.NS',
+'SUPRAJIT.NS',
+'SUPREMEIND.NS',
+'SURYAROSNI.NS',
+'SUVENPHAR.NS',
+'SUZLON.NS',
+'SWANENERGY.NS',
+'SYMPHONY.NS',
+'SYNGENE.NS',
+'SYRMA.NS',
+'TANLA.NS',
+'TARSONS.NS',
+'TATACHEM.NS',
+'TATACOFFEE.NS',
+'TATACOMM.NS',
+'TATACONSUM.NS',
+'TATAELXSI.NS',
+'TATAINVEST.NS',
+'TATAMETALI.NS',
+'TATAMOTORS.NS',
+'TATAMTRDVR.NS',
+'TATAPOWER.NS',
+'TATASTEEL.NS',
+'TCI.NS',
+'TCIEXP.NS',
+'TCNSBRANDS.NS',
+'TCS.NS',
+'TDPOWERSYS.NS',
+'TEAMLEASE.NS',
+'TECHM.NS',
+'TECHNOE.NS',
+'TEJASNET.NS',
+'TEXRAIL.NS',
+'TGVSL.NS',
+'THERMAX.NS',
+'THYROCARE.NS',
+'TIINDIA.NS',
+'TIMETECHNO.NS',
+'TIMKEN.NS',
+'TINPLATE.NS',
+'TIRUMALCHM.NS',
+'TITAGARH.NS',
+'TITAN.NS',
+'TNPL.NS',
+'TORNTPHARM.NS',
+'TORNTPOWER.NS',
+'TRENT.NS',
+'TRIDENT.NS',
+'TRITURBINE.NS',
+'TRIVENI.NS',
+'TTKPRESTIG.NS',
+'TTML.NS',
+'TV18BRDCST.NS',
+'TVSHLTD.NS',
+'TVSMOTOR.NS',
+'TVSSRICHAK.NS',
+'UBL.NS',
+'UCOBANK.NS',
+'UFLEX.NS',
+'UJJIVAN.NS',
+'UJJIVANSFB.NS',
+'ULTRACEMCO.NS',
+'UNICHEMLAB.NS',
+'UNIONBANK.NS',
+'UNITDSPR.NS',
+'UNOMINDA.NS',
+'UPL.NS',
+'USHAMART.NS',
+'UTIAMC.NS',
+'UTISENSETF.NS',
+'UTISXN50.NS',
+'VAIBHAVGBL.NS',
+'VAKRANGEE.NS',
+'VALIANTORG.NS',
+'VARROC.NS',
+'VBL.NS',
+'VEDL.NS',
+'VENKYS.NS',
+'VESUVIUS.NS',
+'VGUARD.NS',
+'VIJAYA.NS',
+'VINATIORGA.NS',
+'VIPIND.NS',
+'VMART.NS',
+'VOLTAMP.NS',
+'VOLTAS.NS',
+'VRLLOG.NS',
+'VSTIND.NS',
+'VTL.NS',
+'WABAG.NS',
+'WARDINMOBI.NS',
+'WELCORP.NS',
+'WELENT.NS',
+'WELSPUNIND.NS',
+'WESTLIFE.NS',
+'WHIRLPOOL.NS',
+'WIPRO.NS',
+'WOCKPHARMA.NS',
+'WSTCSTPAPR.NS',
+'YESBANK.NS',
+'ZEEL.NS',
+'ZENSARTECH.NS',
+'ZFCVINDIA.NS',
+'ZOMATO.NS',
+'ZYDUSLIFE.NS',
+'ZYDUSWELL.NS'
+
+];
+
+
+
+/* logMovies(final); */
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/sortable.min.js"></script>
+
+</body>
+</html>
